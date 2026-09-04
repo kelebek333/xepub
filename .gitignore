@@ -1,0 +1,6 @@
+/build/
+/obj-*/
+__pycache__/
+*.py[cod]
+*.mo
+debian/xepub/
