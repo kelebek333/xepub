@@ -952,11 +952,14 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
     def _build_word_menu(self):
         self.selection_text = ""
         self.selection_annotation = None
+        if hasattr(self, "word_menu"):
+            self.word_menu.destroy()
         self.word_menu = Gtk.Menu()
-        for label, callback in ((_("Look up in dictionary"), self._lookup_dictionary),
-                                (_("Search Wikipedia"), self._lookup_wikipedia)):
-            item = Gtk.MenuItem.new_with_label(label)
-            item.connect("activate", callback)
+        for engine_type, custom_name, url in self.settings.get_value(
+                "search-engines").unpack():
+            item = Gtk.MenuItem.new_with_label(
+                self._search_engine_name(engine_type, custom_name))
+            item.connect("activate", self._lookup_with_engine, url)
             self.word_menu.append(item)
         self.word_menu.show_all()
 
@@ -1060,15 +1063,8 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
     def _copy_text_to_clipboard(text):
         Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
 
-    def _lookup_dictionary(self, _item):
-        self._confirm_external(
-            self.settings.get_string("dictionary-url") +
-            quote(self.selection_text))
-
-    def _lookup_wikipedia(self, _item):
-        self._confirm_external(
-            self.settings.get_string("wikipedia-url") +
-            quote(self.selection_text))
+    def _lookup_with_engine(self, _item, url):
+        self._confirm_external(url.replace("{text}", quote(self.selection_text)))
 
     def _edit_annotation_dialog(self, pointer_x=None, pointer_y=None,
                                 remove_on_cancel=False):
@@ -1366,8 +1362,128 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         self._set_sidebar_visible(True)
         self.sidebar_stack.set_visible_child_name("bookmarks")
 
+    @staticmethod
+    def _search_engine_default_name(engine_type):
+        return {
+            "dictionary": _("Dictionary"),
+            "translate": _("Translate"),
+            "encyclopedia": _("Encyclopedia"),
+        }.get(engine_type, "")
+
+    def _search_engine_name(self, engine_type, custom_name):
+        if engine_type == "wikipedia":
+            engine_type = "encyclopedia"
+        return custom_name or self._search_engine_default_name(engine_type)
+
+    def _refresh_search_engines_list(self, listbox):
+        for child in listbox.get_children():
+            listbox.remove(child)
+        for index, (engine_type, custom_name, url) in enumerate(
+                self.settings.get_value("search-engines").unpack()):
+            row = Gtk.ListBoxRow()
+            row.engine_index = index
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, margin=8)
+            name = self._search_engine_name(engine_type, custom_name)
+            box.pack_start(Gtk.Label(label=name, xalign=0), False, False, 0)
+            address = Gtk.Label(label=url, xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+            address.get_style_context().add_class("dim-label")
+            box.pack_start(address, False, False, 0)
+            row.add(box)
+            listbox.add(row)
+        listbox.show_all()
+
+    def _save_search_engines(self, engines, listbox):
+        self.settings.set_value("search-engines", GLib.Variant("a(sss)", engines))
+        self._refresh_search_engines_list(listbox)
+        self._build_word_menu()
+
+    def _remove_search_engine(self, listbox, index):
+        if index is None:
+            return
+        engines = list(self.settings.get_value("search-engines").unpack())
+        del engines[index]
+        self._save_search_engines(engines, listbox)
+
+    def _edit_search_engine(self, parent, listbox, index=None):
+        engines = list(self.settings.get_value("search-engines").unpack())
+        if index is None:
+            engine_type, custom_name, url_value = "other", "", ""
+        else:
+            engine_type, custom_name, url_value = engines[index]
+        if engine_type == "custom":
+            engine_type = "other"
+        elif engine_type == "wikipedia":
+            engine_type = "encyclopedia"
+        title = _("Edit Search Engine") if index is not None else _("Add Search Engine")
+        dialog = Gtk.Dialog(title, parent, Gtk.DialogFlags.MODAL,
+                            (_("Cancel"), Gtk.ResponseType.CANCEL,
+                             _("Save"), Gtk.ResponseType.OK))
+        grid = Gtk.Grid(row_spacing=10, column_spacing=12, margin=12)
+        engine_type_combo = Gtk.ComboBoxText()
+        for type_id, label in (("dictionary", _("Dictionary")),
+                               ("encyclopedia", _("Encyclopedia")),
+                               ("translate", _("Translate")),
+                               ("other", _("Other"))):
+            engine_type_combo.append(type_id, label)
+        engine_type_combo.set_active_id(engine_type)
+        name = Gtk.Entry(text=custom_name)
+        url = Gtk.Entry(text=url_value)
+        url.set_placeholder_text("https://example.com/search?q={text}")
+        grid.attach(Gtk.Label(label=_("Type"), xalign=0), 0, 0, 1, 1)
+        grid.attach(engine_type_combo, 1, 0, 1, 1)
+        name_label = Gtk.Label(label=_("Name"), xalign=0)
+        grid.attach(name_label, 0, 1, 1, 1)
+        grid.attach(name, 1, 1, 1, 1)
+        grid.attach(Gtk.Label(label=_("URL"), xalign=0), 0, 2, 1, 1)
+        grid.attach(url, 1, 2, 1, 1)
+        hint = Gtk.Label(label=_("Use {text} where the selected text should appear."),
+                         xalign=0)
+        hint.get_style_context().add_class("dim-label")
+        grid.attach(hint, 1, 3, 1, 1)
+        dialog.get_content_area().add(grid)
+        save = dialog.get_widget_for_response(Gtk.ResponseType.OK)
+
+        def validate(*_args):
+            selected_type = engine_type_combo.get_active_id()
+            other = selected_type == "other"
+            name.set_placeholder_text(
+                self._search_engine_default_name(selected_type) if not other else "")
+            save.set_sensitive((not other or bool(name.get_text().strip())) and
+                               "{text}" in url.get_text() and
+                               url.get_text().startswith(("http://", "https://")))
+
+        engine_type_combo.connect("changed", validate)
+        name.connect("changed", validate)
+        url.connect("changed", validate)
+        validate()
+        dialog.show_all()
+        if dialog.run() == Gtk.ResponseType.OK:
+            engine_type = engine_type_combo.get_active_id()
+            entered_name = name.get_text().strip()
+            engine = (engine_type, entered_name, url.get_text().strip())
+            if index is None:
+                engines.append(engine)
+            else:
+                engines[index] = engine
+            self._save_search_engines(engines, listbox)
+        dialog.destroy()
+
     def show_preferences(self):
         dialog = Gtk.Dialog(_("Preferences"), self, Gtk.DialogFlags.MODAL)
+        dialog.set_default_size(680, 500)
+        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        root.set_vexpand(True)
+        pages = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE,
+                          transition_duration=150)
+        pages.set_vexpand(True)
+        sidebar = XApp.StackSidebar(stack=pages)
+        sidebar.set_size_request(180, -1)
+        sidebar.set_vexpand(True)
+        sidebar.set_valign(Gtk.Align.FILL)
+        root.pack_start(sidebar, False, False, 0)
+        root.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL),
+                        False, False, 0)
+        root.pack_start(pages, True, True, 0)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=16)
         general = Gtk.Grid(row_spacing=10, column_spacing=12)
         publisher = Gtk.Switch(active=self.preferences["publisher"])
@@ -1404,7 +1520,48 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         custom = Gtk.Expander(label=_("Custom typography"), expanded=True)
         custom.add(typography); custom.set_sensitive(not publisher.get_active())
         outer.pack_start(custom, False, False, 0)
-        dialog.get_content_area().add(outer)
+
+        engines_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=16)
+        engines_box.pack_start(
+            Gtk.Label(label=_("Search engines used for selected words"), xalign=0),
+            False, False, 0)
+        engines_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        engines_scroll = Gtk.ScrolledWindow()
+        engines_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        engines_scroll.set_shadow_type(Gtk.ShadowType.IN)
+        engines_scroll.set_size_request(420, 150)
+        engines_scroll.add(engines_list)
+        engines_box.pack_start(engines_scroll, True, True, 0)
+        engine_buttons = Gtk.ButtonBox(layout_style=Gtk.ButtonBoxStyle.END, spacing=6)
+        add_engine = Gtk.Button.new_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON)
+        edit_engine = Gtk.Button.new_from_icon_name("document-edit-symbolic", Gtk.IconSize.BUTTON)
+        remove_engine = Gtk.Button.new_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
+        add_engine.set_tooltip_text(_("Add"))
+        edit_engine.set_tooltip_text(_("Edit"))
+        remove_engine.set_tooltip_text(_("Remove"))
+        engine_buttons.add(add_engine); engine_buttons.add(edit_engine); engine_buttons.add(remove_engine)
+        engines_box.pack_start(engine_buttons, False, False, 0)
+        self._refresh_search_engines_list(engines_list)
+
+        def selected_engine_index():
+            row = engines_list.get_selected_row()
+            return row.engine_index if row is not None else None
+
+        def engine_selection_changed(_listbox, _row=None):
+            selected = selected_engine_index() is not None
+            edit_engine.set_sensitive(selected)
+            remove_engine.set_sensitive(selected)
+
+        add_engine.connect("clicked", lambda _button:
+                           self._edit_search_engine(dialog, engines_list))
+        edit_engine.connect("clicked", lambda _button:
+                            self._edit_search_engine(dialog, engines_list,
+                                                     selected_engine_index()))
+        remove_engine.connect("clicked", lambda _button:
+                              self._remove_search_engine(engines_list,
+                                                         selected_engine_index()))
+        engines_list.connect("row-selected", engine_selection_changed)
+        engine_selection_changed(engines_list)
 
         def changed(*_args):
             fraction = (self.current_page - 1) / max(1, self.page_count - 1)
@@ -1452,6 +1609,11 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         reset.set_halign(Gtk.Align.END)
         reset.connect("clicked", reset_preferences)
         outer.pack_end(reset, False, False, 0)
+        pages.add_titled(outer, "reading", _("Reading"))
+        pages.add_titled(engines_box, "search-engines", _("Search Engines"))
+        pages.child_set_property(outer, "icon-name", "xsi-font-symbolic")
+        pages.child_set_property(engines_box, "icon-name", "xsi-edit-find-symbolic")
+        dialog.get_content_area().add(root)
         dialog.show_all()
         dialog.run()
         dialog.destroy()
