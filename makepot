@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+xgettext --language=Desktop --output=xepub.pot data/xepub.desktop.in
+xgettext --language=Glade --join-existing --output=xepub.pot xepub/window.ui
+xgettext --language=Python --join-existing --from-code=UTF-8 --keyword=_ --keyword=N_ \
+  --output=xepub.pot xepub/*.py

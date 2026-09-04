@@ -1,0 +1,6 @@
+#!/bin/bash
+
+sudo rm -rf /usr/share/xepub/*
+sudo cp -R xepub /usr/share/
+killall xepub
+xepub "$@"

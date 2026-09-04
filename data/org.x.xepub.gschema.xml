@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.x.xepub" path="/org/x/xepub/">
+    <key name="window-width" type="i"><default>1080</default><range min="600" max="32768"/></key>
+    <key name="window-height" type="i"><default>760</default><range min="420" max="32768"/></key>
+    <key name="window-maximized" type="b"><default>false</default></key>
+    <key name="sidebar-page" type="s">
+      <choices>
+        <choice value="none"/><choice value="contents"/><choice value="bookmarks"/>
+        <choice value="annotations"/><choice value="search"/>
+      </choices>
+      <default>'none'</default>
+    </key>
+    <key name="search-all-chapters" type="b"><default>true</default></key>
+    <key name="search-case-sensitive" type="b"><default>false</default></key>
+    <key name="search-whole-words" type="b"><default>false</default></key>
+  </schema>
+</schemalist>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Book Reader
+Comment=Read EPUB books
+Exec=xepub %U
+Icon=xepub
+Terminal=false
+Type=Application
+Categories=Office;Viewer;
+MimeType=application/epub+zip;
+Keywords=ebook;book;reader;EPUB;
+StartupWMClass=org.x.Xepub
+StartupNotify=true
