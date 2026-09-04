@@ -68,6 +68,7 @@ class EpubTests(unittest.TestCase):
         self.assertEqual(mime, "text/html")
         self.assertNotIn("<script", text.lower()); self.assertNotIn("onload", text.lower())
         self.assertNotIn("javascript:", text.lower()); self.assertIn("Content-Security-Policy", text)
+        self.assertIn("base-uri xepub:", text)
         self.assertIn('base href="xepub://book/OPS/"', text)
 
     def test_epub2_ncx(self):

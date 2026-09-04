@@ -23,6 +23,12 @@ MAX_ENTRY_SIZE = 64 * 1024 * 1024
 MAX_TOTAL_SIZE = 512 * 1024 * 1024
 MAX_RATIO = 200
 MAX_XML_SIZE = 8 * 1024 * 1024
+CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; img-src xepub:; style-src xepub: 'unsafe-inline'; "
+    "font-src xepub:; script-src 'none'; connect-src 'none'; media-src 'none'; "
+    "object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; "
+    "manifest-src 'none'; base-uri xepub:; form-action 'none'; frame-ancestors 'none'"
+)
 
 # ElementTree does not fetch external DTDs.  EPUB 2 NCX documents commonly
 # carry the official NCX DOCTYPE, so allow declarations while rejecting the
@@ -262,11 +268,8 @@ def sanitize_xhtml(data: bytes, path: str) -> str:
     text = _META_REFRESH.sub("", text)
     text = _EVENT.sub("", text)
     text = _JS_URL.sub(lambda m: m.group("a") + '"#"', text)
-    csp = ("default-src 'none'; img-src xepub:; style-src xepub: 'unsafe-inline'; "
-           "font-src xepub:; media-src 'none'; object-src 'none'; frame-src 'none'; "
-           "script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'")
     base = posixpath.dirname(path).rstrip("/") + "/"
-    head = (f'<meta http-equiv="Content-Security-Policy" content="{html.escape(csp, quote=True)}">'
+    head = (f'<meta http-equiv="Content-Security-Policy" content="{html.escape(CONTENT_SECURITY_POLICY, quote=True)}">'
             f'<base href="xepub://book/{html.escape(base, quote=True)}">')
     if re.search(r"<head\b[^>]*>", text, re.I):
         text = re.sub(r"(<head\b[^>]*>)", r"\1" + head, text, count=1, flags=re.I)

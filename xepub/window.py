@@ -15,11 +15,12 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("WebKit2", "4.1")
 gi.require_version("XApp", "1.0")
-from gi.repository import Gdk, Gio, GLib, Gtk, Pango, WebKit2, XApp
+gi.require_version("Soup", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Soup, WebKit2, XApp
 from xapp.threading import run_idle
 from xapp.util import l10n
 
-from epub import EpubBook, EpubError, xhtml_text
+from epub import CONTENT_SECURITY_POLICY, EpubBook, EpubError, xhtml_text
 from paginator import command as paginator_command
 from state import StateStore
 
@@ -461,7 +462,12 @@ class ReaderWindow(Gtk.ApplicationWindow):
         try:
             data, mime = self.book.resource(path)
             stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
-            request.finish(stream, len(data), mime)
+            response = WebKit2.URISchemeResponse.new(stream, len(data))
+            response.set_content_type(mime)
+            headers = Soup.MessageHeaders.new(Soup.MessageHeadersType.RESPONSE)
+            headers.append("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+            response.set_http_headers(headers)
+            request.finish_with_response(response)
         except Exception as exc:
             request.finish_error(GLib.Error(message=str(exc)))
 
