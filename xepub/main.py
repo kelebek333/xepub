@@ -5,9 +5,10 @@ from pathlib import Path
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gio", "2.0")
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, Gtk, GLib
 from xapp.util import l10n
 from window import ReaderWindow
+from setproctitle import setproctitle
 
 APP_ID = "org.x.Xepub"
 _ = l10n("xepub")
@@ -17,6 +18,9 @@ class XepubApplication(Gtk.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_OPEN)
         self.windows_by_path = {}
+        setproctitle("xepub")
+        GLib.set_prgname(APP_ID)
+        GLib.set_application_name(_("Book Reader"))
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
