@@ -969,10 +969,11 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
             "if(start<0||end<=start)return '';"
             "const r=s.getRangeAt(0).getBoundingClientRect();"
             "return JSON.stringify({text:text.slice(0,16384),start:start,end:end,x:r.left,y:r.top,w:r.width,h:r.height});})()",
-            self._show_selection_popover)
+            lambda value: self._show_selection_popover(value, x, y))
         return False
 
-    def _show_selection_popover(self, value):
+    def _show_selection_popover(self, value, pointer_x, pointer_y):
+        self._selection_pointer = (pointer_x, pointer_y)
         try:
             selection = json.loads(value)
             if selection.get("annotation"):
@@ -983,16 +984,16 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
                 if annotation:
                     self.selection_annotation = annotation
                     self.selection_text = annotation.get("text", "")
-                    self._edit_annotation_dialog()
+                    self._edit_annotation_dialog(pointer_x, pointer_y)
                 return
             text = selection["text"]
             if not text:
                 return
             rect = Gdk.Rectangle()
-            rect.x = max(0, int(selection["x"]))
-            rect.y = max(0, int(selection["y"]))
-            rect.width = max(1, int(selection["w"]))
-            rect.height = max(1, int(selection["h"]))
+            rect.x = pointer_x
+            rect.y = pointer_y + 10
+            rect.width = 1
+            rect.height = 0
         except (TypeError, ValueError, KeyError):
             return
         self.selection_text = text
@@ -1051,9 +1052,9 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
     def _edit_annotation_note(self, _item):
         if not self.selection_annotation:
             return
-        self._edit_annotation_dialog()
+        self._edit_annotation_dialog(*self._selection_pointer)
 
-    def _edit_annotation_dialog(self):
+    def _edit_annotation_dialog(self, pointer_x=None, pointer_y=None):
         dialog = Gtk.Dialog(_("Annotation"), self, Gtk.DialogFlags.MODAL,
                             (_("Cancel"), Gtk.ResponseType.CANCEL,
                              _("Save"), Gtk.ResponseType.OK))
@@ -1087,6 +1088,9 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         content.pack_start(Gtk.Label(label=_("Note"), xalign=0), False, False, 0)
         content.pack_start(note_scroll, True, True, 0)
         dialog.get_content_area().add(content); dialog.show_all()
+        if pointer_x is not None and pointer_y is not None:
+            _success, origin_x, origin_y = self.web.get_window().get_origin()
+            dialog.move(origin_x + pointer_x, origin_y + pointer_y + 10)
         if dialog.run() == Gtk.ResponseType.OK:
             buffer = view.get_buffer()
             self.selection_annotation["color"] = color.get_active_id()
