@@ -2,12 +2,23 @@ Source: xepub
 Section: utils
 Priority: optional
 Maintainer: Clement Lefebvre <root@linuxmint.com>
-Build-Depends: debhelper-compat (= 13), gettext, libglib2.0-dev-bin, meson, python3
+Build-Depends:
+ debhelper-compat (= 13),
+ gettext,
+ libglib2.0-dev-bin,
+ meson,
+ python3,
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
 Package: xepub
 Architecture: all
-Depends: ${misc:Depends}, gir1.2-gtk-3.0, gir1.2-webkit2-4.1, python3, python3-gi, python3-xapp
+Depends:
+ ${misc:Depends},
+ gir1.2-gtk-3.0,
+ gir1.2-webkit2-4.1,
+ python3,
+ python3-gi,
+ python3-xapp,
 Description: EPUB reader for the Linux desktop
  Xepub is a secure, comfortable, paginated EPUB reader.
