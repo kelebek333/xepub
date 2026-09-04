@@ -1,3 +1,24 @@
+xepub (1.0.0) alfa; urgency=medium
+
+  * Add .gitignore
+  * security: Harden the WebKit network context
+  * security: Block network URLs in book content
+  * security: Enforce CSP on book resource responses
+  * readme: Add security.md
+  * l10n: Update POT
+  * Update readme
+  * debian: Reorganize dependencies
+  * Set process title and app name
+  * Move wikipedia/dictionary URLs to gsettings
+  * Place menu popups slightly below the mouse cursor
+  * annotations: Improve workflow
+  * search: Support configurable engines
+  * prefs: Move to preferences.py
+  * engines: Remove confirmation dialog
+  * l10n: Update POT
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 04 Sep 2026 16:12:03 +0100
+
 xepub (0.1.0) unstable; urgency=medium
 
   * Initial release.
