@@ -62,7 +62,7 @@ class ReaderWindow(Gtk.ApplicationWindow):
         self._preferences_refresh_source = 0
         self._preferences_fraction = 0.0
         self._pending_search_result = None
-        self._pending_annotation_id = None
+        self._last_content_click = None
         self._syncing_search_selection = False
         self.search_chapter_lists = []
         self.search_all_chapters = self.settings.get_boolean("search-all-chapters")
@@ -162,9 +162,10 @@ class ReaderWindow(Gtk.ApplicationWindow):
         self.toc_view.get_selection().connect("changed", self._toc_selection_changed)
         toc_scroll = Gtk.ScrolledWindow(); toc_scroll.add(self.toc_view)
         self.annotations_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-        annotations_scroll = Gtk.ScrolledWindow(); annotations_scroll.add(self.annotations_list)
+        self.annotations_scroll = Gtk.ScrolledWindow()
+        self.annotations_scroll.add(self.annotations_list)
         self.annotations_panel = Gtk.Stack()
-        self.annotations_panel.add_named(annotations_scroll, "list")
+        self.annotations_panel.add_named(self.annotations_scroll, "list")
         self.annotations_panel.add_named(
             self._empty_sidebar_panel("xsi-edit-symbolic", _("No annotations")), "empty")
         self.annotations_panel.set_visible_child_name("empty")
@@ -238,7 +239,7 @@ class ReaderWindow(Gtk.ApplicationWindow):
         self.bookmarks_panel.set_visible_child_name("empty")
         self.annotations_panel.set_visible_child_name("empty")
         self.search_results_panel.set_visible_child_name("empty")
-        self._build_selection_menu()
+        self._build_word_menu()
         self._build_reader_context_menu()
         if self._sidebar_saved_page != "none":
             self._syncing_sidebar_buttons = True
@@ -352,6 +353,8 @@ class ReaderWindow(Gtk.ApplicationWindow):
                     Path(path).stem)
 
     def _refresh_annotations_sidebar(self):
+        self._annotation_rows = {}
+        self._annotation_lists = []
         for child in self.annotations_list.get_children():
             self.annotations_list.remove(child)
         if not self.book:
@@ -362,10 +365,13 @@ class ReaderWindow(Gtk.ApplicationWindow):
                   "blue": "#4b9cff", "pink": "#f469aa"}
         for chapter in sorted({item.get("chapter", 0) for item in annotations}):
             expander = Gtk.Expander(label=self._chapter_label(chapter), expanded=True, margin=6)
-            cards = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+            cards = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+            cards.set_activate_on_single_click(False)
             cards.connect("row-activated", self._annotation_row_activated)
+            self._annotation_lists.append(cards)
             for annotation in (item for item in annotations if item.get("chapter") == chapter):
                 row = Gtk.ListBoxRow(); row.annotation = annotation
+                self._annotation_rows[annotation.get("id")] = (cards, row, expander)
                 card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, margin=10)
                 dot = Gtk.Label()
                 dot.set_markup('<span size="large" foreground="%s">●</span>' %
@@ -397,19 +403,46 @@ class ReaderWindow(Gtk.ApplicationWindow):
         self.annotations_list.show_all()
         self.annotations_panel.set_visible_child_name("list" if annotations else "empty")
 
+    def _select_annotation_sidebar(self, annotation_id):
+        self.sidebar_stack.set_visible_child_name("annotations")
+        self._set_sidebar_visible(True)
+        target = self._annotation_rows.get(annotation_id)
+        if not target:
+            return
+        for cards in self._annotation_lists:
+            cards.unselect_all()
+        cards, row, expander = target
+        expander.set_expanded(True)
+        cards.select_row(row)
+        row.grab_focus()
+        GLib.idle_add(self._scroll_annotation_row_into_view, row)
+
+    def _scroll_annotation_row_into_view(self, row):
+        if not row.get_mapped():
+            return GLib.SOURCE_REMOVE
+        coordinates = row.translate_coordinates(self.annotations_list, 0, 0)
+        if coordinates is None:
+            return GLib.SOURCE_REMOVE
+        _x, y = coordinates
+        adjustment = self.annotations_scroll.get_vadjustment()
+        top = adjustment.get_value()
+        bottom = top + adjustment.get_page_size()
+        row_bottom = y + row.get_allocated_height()
+        if y < top:
+            adjustment.set_value(y)
+        elif row_bottom > bottom:
+            adjustment.set_value(row_bottom - adjustment.get_page_size())
+        return GLib.SOURCE_REMOVE
+
     def _remove_annotation(self, _button, annotation_id):
         annotations = self.store.book(self.book.identifier).setdefault("annotations", [])
         annotations[:] = [item for item in annotations if item.get("id") != annotation_id]
         self.store.save(); self._refresh_annotations_sidebar(); self._render_annotations()
 
     def _annotation_row_activated(self, _listbox, row):
-        annotation = row.annotation
-        self._remember_location()
-        self.save_position()
-        self.chapter = annotation["chapter"]
-        self.pending_fraction = 0.0
-        self._pending_annotation_id = annotation.get("id")
-        self.load_chapter()
+        self.selection_annotation = row.annotation
+        self.selection_text = row.annotation.get("text", "")
+        self._edit_annotation_dialog()
 
     def _install_actions(self):
         actions = {
@@ -590,7 +623,7 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
 
     def _restore_complete(self, value):
         self._metrics_result(value)
-        self._render_annotations(self._annotations_rendered)
+        self._render_annotations()
         self.reader_stack.set_visible_child_name("reader")
         if self._pending_search_result:
             text, occurrence = self._pending_search_result
@@ -916,30 +949,9 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         self.reader_context_menu.append(self.add_bookmark_menu_item)
         self.reader_context_menu.show_all()
 
-    def _build_selection_menu(self):
+    def _build_word_menu(self):
         self.selection_text = ""
         self.selection_annotation = None
-        self.selection_menu = Gtk.Menu()
-        color_item = Gtk.MenuItem.new_with_label(_("Highlight color"))
-        colors = Gtk.Menu()
-        for color, label in (("yellow", _("Yellow")), ("pink", _("Pink")),
-                             ("blue", _("Blue")), ("green", _("Green"))):
-            item = Gtk.MenuItem.new_with_label(label)
-            item.connect("activate", self._set_annotation_color, color)
-            colors.append(item)
-        color_item.set_submenu(colors)
-        self.selection_menu.append(color_item)
-        for label, icon, callback in (
-                (_("Add a note…"), "xsi-edit-symbolic", self._edit_annotation_note),
-                (_("Copy"), "edit-copy-symbolic", self._copy_selection),
-                (_("Search in book"), "xsi-edit-find-symbolic", self._search_selection),
-                (_("Delete annotation"), "edit-delete-symbolic", self._delete_selected_annotation)):
-            item = Gtk.ImageMenuItem.new_with_label(label)
-            item.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU))
-            item.set_always_show_image(True)
-            item.connect("activate", callback)
-            self.selection_menu.append(item)
-        self.selection_menu.show_all()
         self.word_menu = Gtk.Menu()
         for label, callback in ((_("Look up in dictionary"), self._lookup_dictionary),
                                 (_("Search Wikipedia"), self._lookup_wikipedia)):
@@ -951,16 +963,34 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
     def _web_button_released(self, _web, event):
         if event.button != 1 or not self.book:
             return False
-        self._inspect_selection(int(event.x), int(event.y))
+        settings = Gtk.Settings.get_default()
+        double_time = settings.get_property("gtk-double-click-time")
+        double_distance = settings.get_property("gtk-double-click-distance")
+        previous = self._last_content_click
+        annotation_double_click = bool(
+            previous and event.time - previous[0] <= double_time and
+            abs(event.x - previous[1]) <= double_distance and
+            abs(event.y - previous[2]) <= double_distance)
+        self._last_content_click = (event.time, event.x, event.y)
+        self._inspect_selection(int(event.x), int(event.y), annotation_double_click)
         return False
 
     @run_idle
-    def _inspect_selection(self, x, y):
+    def _inspect_selection(self, x, y, annotation_double_click):
+        force_annotation = "true" if annotation_double_click else "false"
+        zoom = self.web.get_zoom_level()
+        hit_x = x / zoom
+        hit_y = y / zoom
         self._trusted_eval(
-            f"(()=>{{const s=getSelection();if(!s||s.isCollapsed){{"
-            f"const mark=document.elementFromPoint({x},{y})?.closest('.xepub-annotation');"
-            "if(!mark)return '';const r=mark.getBoundingClientRect();"
-            "return JSON.stringify({annotation:mark.dataset.annotationId,x:r.left,y:r.top,w:r.width,h:r.height});}"
+            f"(()=>{{const s=getSelection();"
+            f"const mark=document.elementFromPoint({hit_x},{hit_y})?.closest('.xepub-annotation');"
+            "if(mark){"
+            f"if({force_annotation}){{const selected=document.createRange();"
+            "selected.selectNodeContents(mark);s.removeAllRanges();s.addRange(selected);}"
+            "const r=mark.getBoundingClientRect();"
+            f"return JSON.stringify({{annotation:mark.dataset.annotationId,edit:{force_annotation},"
+            "x:r.left,y:r.top,w:r.width,h:r.height});}"
+            "if(!s||s.isCollapsed)return '';"
             "const range=s.getRangeAt(0),text=s.toString();if(!text.trim())return '';"
             "const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);"
             "let n,offset=0,start=-1,end=-1;while(n=walker.nextNode()){"
@@ -973,7 +1003,6 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         return False
 
     def _show_selection_popover(self, value, pointer_x, pointer_y):
-        self._selection_pointer = (pointer_x, pointer_y)
         try:
             selection = json.loads(value)
             if selection.get("annotation"):
@@ -984,7 +1013,10 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
                 if annotation:
                     self.selection_annotation = annotation
                     self.selection_text = annotation.get("text", "")
-                    self._edit_annotation_dialog(pointer_x, pointer_y)
+                    self._copy_text_to_clipboard(self.selection_text)
+                    self._select_annotation_sidebar(annotation_id)
+                    if selection.get("edit"):
+                        self._edit_annotation_dialog(pointer_x, pointer_y)
                 return
             text = selection["text"]
             if not text:
@@ -997,6 +1029,7 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         except (TypeError, ValueError, KeyError):
             return
         self.selection_text = text
+        self._copy_text_to_clipboard(text)
         if re.fullmatch(r"\w+(?:['’\-]\w+)*", text.strip(), re.UNICODE):
             self.selection_text = text.strip()
             self.word_menu.popup_at_rect(
@@ -1008,7 +1041,8 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
                            if item.get("chapter") == self.chapter and
                            item.get("start") == selection["start"] and
                            item.get("end") == selection["end"]), None)
-        if annotation is None:
+        new_annotation = annotation is None
+        if new_annotation:
             annotation = {
                 "id": uuid.uuid4().hex, "chapter": self.chapter,
                 "start": selection["start"], "end": selection["end"],
@@ -1020,18 +1054,11 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
             self._render_annotations()
             self._refresh_annotations_sidebar()
         self.selection_annotation = annotation
-        self.selection_menu.popup_at_rect(
-            self.web.get_window(), rect,
-            Gdk.Gravity.SOUTH, Gdk.Gravity.NORTH, None)
+        self._edit_annotation_dialog(pointer_x, pointer_y, new_annotation)
 
-    def _copy_selection(self, _item):
-        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.selection_text, -1)
-
-    def _search_selection(self, _item):
-        text = self.selection_text
-        self.show_find()
-        self.search_entry.set_text(text)
-        self._collect_search_results(text)
+    @staticmethod
+    def _copy_text_to_clipboard(text):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
 
     def _lookup_dictionary(self, _item):
         self._confirm_external(
@@ -1043,18 +1070,8 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
             self.settings.get_string("wikipedia-url") +
             quote(self.selection_text))
 
-    def _set_annotation_color(self, _item, color):
-        if not self.selection_annotation:
-            return
-        self.selection_annotation["color"] = color
-        self.store.save(); self._render_annotations(); self._refresh_annotations_sidebar()
-
-    def _edit_annotation_note(self, _item):
-        if not self.selection_annotation:
-            return
-        self._edit_annotation_dialog(*self._selection_pointer)
-
-    def _edit_annotation_dialog(self, pointer_x=None, pointer_y=None):
+    def _edit_annotation_dialog(self, pointer_x=None, pointer_y=None,
+                                remove_on_cancel=False):
         dialog = Gtk.Dialog(_("Annotation"), self, Gtk.DialogFlags.MODAL,
                             (_("Cancel"), Gtk.ResponseType.CANCEL,
                              _("Save"), Gtk.ResponseType.OK))
@@ -1097,18 +1114,16 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
             self.selection_annotation["note"] = buffer.get_text(
                 buffer.get_start_iter(), buffer.get_end_iter(), True).strip()
             self.store.save(); self._render_annotations(); self._refresh_annotations_sidebar()
+        elif remove_on_cancel:
+            annotations = self.store.book(self.book.identifier).setdefault("annotations", [])
+            annotation_id = self.selection_annotation.get("id")
+            annotations[:] = [item for item in annotations
+                             if item.get("id") != annotation_id]
+            self.selection_annotation = None
+            self.store.save(); self._render_annotations(); self._refresh_annotations_sidebar()
         dialog.destroy()
 
-    def _delete_selected_annotation(self, _item):
-        if not self.selection_annotation or not self.book:
-            return
-        annotations = self.store.book(self.book.identifier).setdefault("annotations", [])
-        annotation_id = self.selection_annotation.get("id")
-        annotations[:] = [item for item in annotations if item.get("id") != annotation_id]
-        self.selection_annotation = None
-        self.store.save(); self._render_annotations(); self._refresh_annotations_sidebar()
-
-    def _render_annotations(self, callback=None):
+    def _render_annotations(self):
         if not self.book or self.non_spine_resource:
             return
         annotations = [item for item in self.store.book(self.book.identifier).get("annotations", [])
@@ -1124,14 +1139,7 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
             "for(let i=parts.length-1;i>=0;i--){const [text,a,b]=parts[i],range=document.createRange();"
             "range.setStart(text,a);range.setEnd(text,b);const span=document.createElement('span');"
             "span.className='xepub-annotation';span.dataset.annotationId=item.id;span.dataset.color=item.color;"
-            "range.surroundContents(span);}}return '';})()", callback)
-
-    def _annotations_rendered(self, _value):
-        if not self._pending_annotation_id:
-            return
-        selector = '[data-annotation-id="%s"]' % self._pending_annotation_id
-        self._pending_annotation_id = None
-        self._paginate("goTo", selector, callback=self._metrics_result)
+            "range.surroundContents(span);}}return '';})()")
 
     def _web_scroll(self, _web, event):
         if event.state & Gdk.ModifierType.CONTROL_MASK:
