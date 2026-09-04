@@ -9,6 +9,7 @@ install_data(
   'xepub/main.py',
   'xepub/epub.py',
   'xepub/paginator.py',
+  'xepub/preferences.py',
   'xepub/state.py',
   'xepub/window.ui',
   install_dir: xepub_dir,
