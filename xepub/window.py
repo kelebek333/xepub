@@ -83,9 +83,13 @@ class ReaderWindow(Gtk.ApplicationWindow):
 
     def _build_webview(self):
         context = WebKit2.WebContext.new_ephemeral()
+        context.set_sandbox_enabled(True)
         context.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
+        proxy = WebKit2.NetworkProxySettings.new("http://127.0.0.1:9", None)
+        for scheme in ("http", "https", "ftp", "ws", "wss"):
+            proxy.add_proxy_for_scheme(scheme, "http://127.0.0.1:9")
+        context.set_network_proxy_settings(WebKit2.NetworkProxyMode.CUSTOM, proxy)
         context.register_uri_scheme("xepub", self._serve_uri, None)
-        manager = WebKit2.UserContentManager()
         self.web = WebKit2.WebView.new_with_context(context)
         settings = self.web.get_settings()
         disabled = (
