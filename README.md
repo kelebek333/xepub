@@ -22,7 +22,8 @@ Runtime requirements are Python 3, PyGObject, GTK 3, XApp, and WebKitGTK 4.1.
 - Ctrl+O: open; Ctrl+F: find; Ctrl+B: bookmark
 - F11: distraction-free fullscreen; Ctrl+Q: quit
 
-EPUB archives are never extracted. Xepub rejects unsafe ZIP structures and
-dangerous XML declarations, sanitizes active content, serves only current-book
-resources through its private `xepub:` origin, disables unnecessary WebKit
-features, and confirms external links before opening them outside the reader.
+## Security
+
+Xepub is built with security in mind.
+
+The security design and measures are documented in [SECURITY.md](SECURITY.md).
