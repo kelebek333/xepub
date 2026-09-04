@@ -4,6 +4,7 @@ import html as html_module
 import json
 import posixpath
 import re
+import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -91,6 +92,7 @@ class ReaderWindow(Gtk.ApplicationWindow):
         context.set_network_proxy_settings(WebKit2.NetworkProxyMode.CUSTOM, proxy)
         context.register_uri_scheme("xepub", self._serve_uri, None)
         self.web = WebKit2.WebView.new_with_context(context)
+        self._install_network_filter()
         settings = self.web.get_settings()
         disabled = (
             "enable-javascript", "enable-javascript-markup", "enable-java", "enable-media",
@@ -115,6 +117,23 @@ class ReaderWindow(Gtk.ApplicationWindow):
         self.web.connect("scroll-event", self._web_scroll)
         self.find_controller = self.web.get_find_controller()
         self.web.set_zoom_level(self.preferences["zoom"])
+
+    def _install_network_filter(self):
+        rules = [{"trigger": {"url-filter": "^%s:" % scheme},
+                  "action": {"type": "block"}}
+                 for scheme in ("http", "https", "ftp", "ws", "wss", "file")]
+        self._filter_directory = tempfile.TemporaryDirectory(prefix="xepub-filter-")
+        self._filter_store = WebKit2.UserContentFilterStore.new(self._filter_directory.name)
+        self._filter_store.save(
+            "offline", GLib.Bytes.new(json.dumps(rules).encode("utf-8")), None,
+            self._network_filter_ready, None)
+
+    def _network_filter_ready(self, store, result, _data):
+        try:
+            content_filter = store.save_finish(result)
+            self.web.get_user_content_manager().add_filter(content_filter)
+        except GLib.Error as error:
+            GLib.warning("Could not install Xepub's network filter: %s", error.message)
 
     def _build_ui(self):
         builder = Gtk.Builder()
