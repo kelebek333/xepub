@@ -1064,7 +1064,8 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
 
     def _lookup_with_engine(self, _item, url):
-        self._confirm_external(url.replace("{text}", quote(self.selection_text)))
+        Gio.AppInfo.launch_default_for_uri(
+            url.replace("{text}", quote(self.selection_text)), None)
 
     def _edit_annotation_dialog(self, pointer_x=None, pointer_y=None,
                                 remove_on_cancel=False):
