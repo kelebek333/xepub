@@ -1,8 +1,10 @@
 # Xepub
 
-Xepub is an EPUB reader for Linux.
+<img width="1446" height="979" alt="xepub" src="https://github.com/user-attachments/assets/5c6ef2c5-5152-4359-8a7c-4d00bcf209f7" />
 
-It's an XApp, so it works in any desktop and any distro.
+EPUB reader for Linux desktops.
+
+Xepub is an XApp, so it works in any desktop and any distro.
 
 ## Build and run
 
