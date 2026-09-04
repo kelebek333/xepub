@@ -1,0 +1,307 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-04 12:14+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: data/xepub.desktop.in:3 xepub/window.py:1479
+msgid "Book Reader"
+msgstr ""
+
+#: data/xepub.desktop.in:4
+msgid "Read EPUB books"
+msgstr ""
+
+#: data/xepub.desktop.in:11
+msgid "ebook;book;reader;EPUB;"
+msgstr ""
+
+#: xepub/window.ui:20 xepub/window.py:161 xepub/window.py:207
+msgid "Contents"
+msgstr ""
+
+#: xepub/window.ui:40 xepub/window.py:208
+msgid "Bookmarks"
+msgstr ""
+
+#: xepub/window.ui:60 xepub/window.py:210
+msgid "Annotations"
+msgstr ""
+
+#: xepub/window.ui:80 xepub/window.py:209
+msgid "Search"
+msgstr ""
+
+#: xepub/window.ui:130
+msgid "Next page"
+msgstr ""
+
+#: xepub/window.ui:149
+msgid "Previous page"
+msgstr ""
+
+#: xepub/window.ui:242
+msgid "No book open"
+msgstr ""
+
+#: xepub/window.ui:255 xepub/main.py:55
+msgid "Open a Book…"
+msgstr ""
+
+#: xepub/main.py:56
+msgid "Open"
+msgstr ""
+
+#: xepub/main.py:56 xepub/window.py:503 xepub/window.py:1058
+msgid "Cancel"
+msgstr ""
+
+#: xepub/main.py:57
+msgid "EPUB books"
+msgstr ""
+
+#: xepub/window.py:150 xepub/window.py:1358
+msgid "Preferences"
+msgstr ""
+
+#: xepub/window.py:151
+msgid "Book Information"
+msgstr ""
+
+#: xepub/window.py:152
+msgid "About"
+msgstr ""
+
+#: xepub/window.py:153
+msgid "Quit"
+msgstr ""
+
+#: xepub/window.py:169
+msgid "No annotations"
+msgstr ""
+
+#: xepub/window.py:177
+msgid "No bookmarks"
+msgstr ""
+
+#: xepub/window.py:180
+msgid "Search this book"
+msgstr ""
+
+#: xepub/window.py:189
+msgid "Search options"
+msgstr ""
+
+#: xepub/window.py:196
+msgid "Enter search terms"
+msgstr ""
+
+#: xepub/window.py:199
+msgid "No results"
+msgstr ""
+
+#: xepub/window.py:314
+msgid "Bookmark"
+msgstr ""
+
+#: xepub/window.py:319
+msgid "Remove bookmark"
+msgstr ""
+
+#: xepub/window.py:389 xepub/window.py:936
+msgid "Delete annotation"
+msgstr ""
+
+#: xepub/window.py:428
+msgid "Could not open book"
+msgstr ""
+
+#: xepub/window.py:502
+msgid "Open external link?"
+msgstr ""
+
+#: xepub/window.py:504
+msgid "Open in browser"
+msgstr ""
+
+#: xepub/window.py:813
+#, python-format
+msgid "%(chapter)s · Page %(page)d of %(pages)d · %(progress)d%%"
+msgstr ""
+
+#: xepub/window.py:904
+msgid "Go Back"
+msgstr ""
+
+#: xepub/window.py:911
+msgid "Add bookmark"
+msgstr ""
+
+#: xepub/window.py:923 xepub/window.py:1085
+msgid "Highlight color"
+msgstr ""
+
+#: xepub/window.py:925 xepub/window.py:1061
+msgid "Yellow"
+msgstr ""
+
+#: xepub/window.py:925 xepub/window.py:1062
+msgid "Pink"
+msgstr ""
+
+#: xepub/window.py:926 xepub/window.py:1063
+msgid "Blue"
+msgstr ""
+
+#: xepub/window.py:926 xepub/window.py:1064
+msgid "Green"
+msgstr ""
+
+#: xepub/window.py:933
+msgid "Add a note…"
+msgstr ""
+
+#: xepub/window.py:934
+msgid "Copy"
+msgstr ""
+
+#: xepub/window.py:935
+msgid "Search in book"
+msgstr ""
+
+#: xepub/window.py:944
+msgid "Look up in dictionary"
+msgstr ""
+
+#: xepub/window.py:945
+msgid "Search Wikipedia"
+msgstr ""
+
+#: xepub/window.py:1057
+msgid "Annotation"
+msgstr ""
+
+#: xepub/window.py:1059
+msgid "Save"
+msgstr ""
+
+#: xepub/window.py:1087
+msgid "Note"
+msgstr ""
+
+#: xepub/window.py:1171
+msgid "All chapters"
+msgstr ""
+
+#: xepub/window.py:1173
+msgid "Current chapter"
+msgstr ""
+
+#: xepub/window.py:1179
+msgid "Case sensitive"
+msgstr ""
+
+#: xepub/window.py:1180
+msgid "Whole words only"
+msgstr ""
+
+#: xepub/window.py:1363
+msgid "Light"
+msgstr ""
+
+#: xepub/window.py:1363
+msgid "Sepia"
+msgstr ""
+
+#: xepub/window.py:1363
+msgid "Dark"
+msgstr ""
+
+#: xepub/window.py:1370
+msgid "Use book styling"
+msgstr ""
+
+#: xepub/window.py:1371
+msgid "Theme"
+msgstr ""
+
+#: xepub/window.py:1372
+msgid "Page margins"
+msgstr ""
+
+#: xepub/window.py:1373
+msgid "Zoom (%)"
+msgstr ""
+
+#: xepub/window.py:1384
+msgid "Left"
+msgstr ""
+
+#: xepub/window.py:1384
+msgid "Justified"
+msgstr ""
+
+#: xepub/window.py:1386
+msgid "Font family"
+msgstr ""
+
+#: xepub/window.py:1387
+msgid "Font size"
+msgstr ""
+
+#: xepub/window.py:1388
+msgid "Line spacing"
+msgstr ""
+
+#: xepub/window.py:1389
+msgid "Alignment"
+msgstr ""
+
+#: xepub/window.py:1392
+msgid "Custom typography"
+msgstr ""
+
+#: xepub/window.py:1439
+msgid "Reset to Defaults"
+msgstr ""
+
+#: xepub/window.py:1469
+msgid "Title"
+msgstr ""
+
+#: xepub/window.py:1469
+msgid "Author"
+msgstr ""
+
+#: xepub/window.py:1469
+msgid "Language"
+msgstr ""
+
+#: xepub/window.py:1470
+msgid "Publisher"
+msgstr ""
+
+#: xepub/window.py:1470
+msgid "Identifier"
+msgstr ""
+
+#: xepub/window.py:1470
+msgid "Description"
+msgstr ""
+
+#: xepub/window.py:1472
+msgid "Book information"
+msgstr ""

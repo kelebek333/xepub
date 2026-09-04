@@ -148,7 +148,7 @@ class ReaderWindow(Gtk.ApplicationWindow):
         menu_button = builder.get_object("menu_button")
         menu = Gio.Menu()
         for label, action in ((_("Preferences"), "win.preferences"),
-                              (_("Book information"), "win.info"),
+                              (_("Book Information"), "win.info"),
                               (_("About"), "win.about"),
                               (_("Quit"), "app.quit")):
             menu.append(label, action)
@@ -1476,7 +1476,8 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("Xepub")
         dialog.set_version("__PROJECT_VERSION__")
-        dialog.set_comments(_("A focused, paginated EPUB reader"))
+        dialog.set_comments(_("Book Reader"))
+        dialog.set_website("https://github.com/xapp-project/xepub")
         dialog.set_logo_icon_name("xepub")
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.run(); dialog.destroy()

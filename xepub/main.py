@@ -52,7 +52,7 @@ class XepubApplication(Gtk.Application):
 
     def open_dialog(self, *_args):
         parent = self.get_active_window()
-        dialog = Gtk.FileChooserNative.new(_("Open EPUB"), parent, Gtk.FileChooserAction.OPEN,
+        dialog = Gtk.FileChooserNative.new(_("Open a Book…"), parent, Gtk.FileChooserAction.OPEN,
                                            _("Open"), _("Cancel"))
         epub_filter = Gtk.FileFilter(); epub_filter.set_name(_("EPUB books")); epub_filter.add_mime_type("application/epub+zip"); epub_filter.add_pattern("*.epub")
         dialog.add_filter(epub_filter)
