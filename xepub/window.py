@@ -1034,12 +1034,12 @@ pre, table {{ max-width:100%; overflow-wrap:anywhere; }} {reader_style}
 
     def _lookup_dictionary(self, _item):
         self._confirm_external(
-            "https://en.wiktionary.org/wiki/Special:Search?search=" +
+            self.settings.get_string("dictionary-url") +
             quote(self.selection_text))
 
     def _lookup_wikipedia(self, _item):
         self._confirm_external(
-            "https://en.wikipedia.org/wiki/Special:Search?search=" +
+            self.settings.get_string("wikipedia-url") +
             quote(self.selection_text))
 
     def _set_annotation_color(self, _item, color):

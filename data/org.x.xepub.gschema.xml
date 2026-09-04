@@ -14,5 +14,11 @@
     <key name="search-all-chapters" type="b"><default>true</default></key>
     <key name="search-case-sensitive" type="b"><default>false</default></key>
     <key name="search-whole-words" type="b"><default>false</default></key>
+    <key name="wikipedia-url" type="s">
+      <default>'https://en.wikipedia.org/wiki/Special:Search?search='</default>
+    </key>
+    <key name="dictionary-url" type="s">
+      <default>'https://en.wiktionary.org/wiki/Special:Search?search='</default>
+    </key>
   </schema>
 </schemalist>
